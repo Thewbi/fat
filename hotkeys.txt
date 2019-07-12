@@ -1,0 +1,7 @@
+CTRL + F2 -- rename symbol, parameter, local variable
+
+CTRL + SHIFT + P -- open command input bar
+
+CTRL + SHIFT + I -- format code
+
+F5 -- debug
