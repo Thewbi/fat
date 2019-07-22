@@ -7,7 +7,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "gcc build and debug active file",
+            "name": "gcc build and debug Linux",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/../target/a.out",
@@ -25,7 +25,33 @@
                 }
             ],
             "preLaunchTask": "Build",
-            "miDebuggerPath": "/usr/bin/gdb"
+            // linux
+            "miDebuggerPath": "/usr/bin/gdb",
+            // mac
+            // https://medium.com/gdplabs/build-and-debug-c-on-visual-studio-code-for-mac-77e05537105e
+            //"miDebuggerPath": "/usr/local/bin/gdb",
+        },
+        {
+            "name": "gcc build and debug Mac",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/../target/a.out",
+            "preLaunchTask": "Build",
+            "internalConsoleOptions": "openOnSessionStart",
+            "logging": {
+                "moduleLoad": false,
+                "programOutput": true,
+                "trace": false
+            },
+            "showDisplayString": false,
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": true, // set true to enable keyboard input
+            "osx": {
+                "MIMode": "lldb"
+            }
         }
     ]
 }

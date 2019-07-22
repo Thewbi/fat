@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "main.h": "c",
-        "fat.h": "c"
+        "fat.h": "c",
+        "stdbool.h": "c",
+        "stdarg.h": "c"
     }
 }

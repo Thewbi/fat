@@ -18,7 +18,8 @@ executable := $(addprefix $(TARGET_DIR)/, $(EXECUTABLE))
 a.out : $(objects)
 	$(CC) $(CPPFLAGS) -o $(executable) $(objects) $(LDLIBS)
 
-target/%.o : %.c fat.h
+target/%.o : %.c fat.h filetools.h main.h
+	@test -d $(TARGET_DIR) || @mkdir $(TARGET_DIR)
 	$(CC) -g -c $(CPPFLAGS) $< -o $@
 
 # use $(RM) defined by GNU make instead of rm directly, because $(RM) does not alert: No such file or directory
