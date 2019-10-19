@@ -478,13 +478,6 @@ int ls(const char *buffer, const bios_parameter_block *bpb)
 
 int lsDirEntry(const char *buffer, const bios_parameter_block *bpb, directory_entry *directoryEntry)
 {
-    // if (workingDirectory == NULL)
-    // {
-    //     return outputRootFolder(buffer, bpb);
-    // }
-
-    // return outputFolder(buffer, bpb, workingDirectory->first_logical_cluster);
-
     if (directoryEntry == NULL)
     {
         return outputRootFolder(buffer, bpb);
@@ -1296,6 +1289,103 @@ int main()
     char in[8] = "testtes\0";
     char out[8];
     int maxLength = 8;
+    char *buffer = NULL;
+
+    if (load_file_to_memory("resources/jamesmol.img", &buffer) < 0)
+    //if (load_file_to_memory("resources/msdos_disk1.img", &buffer) < 0)
+    {
+        printf("Loading the file failed!\n");
+
+        return -1;
+    }
+
+    printf("File loaded!\n");
+
+    bios_parameter_block *bpb = (bios_parameter_block *)buffer;
+
+    //outputFat(buffer, bpb);
+
+    if (bpb->bytesPerSec <= 0 || bpb->rsvdSecCnt <= 0 || bpb->numFats <= 0) 
+    {
+        printf("Not a FAT12 image!\n");
+
+        free(buffer);
+        buffer = NULL;
+
+        return 0;
+    }
+
+    // compute the sector where the first FAT starts
+    int fatStartSector = bpb->rsvdSecCnt;
+
+    // compute the amount of sectors that the redundant FAT information occupies
+    // number of redundant copies of the FAT table times the amount of sectors one FAT occupies
+    int fatSectors = bpb->secPerFat * bpb->numFats;
+
+    // compute the sector on which the root dir starts
+    int rootDirStartSector = fatStartSector + fatSectors;
+
+    // compute the amount of sectors the root dir occupies
+    int rootDirSectors = (32 * bpb->rootEntCnt + bpb->bytesPerSec - 1) / bpb->bytesPerSec;
+
+    // compute the start sector of the data area
+    int dataStartSector = rootDirStartSector + rootDirSectors;
+
+    // CountofClusters from http://elm-chan.org/docs/fat_e.html
+    // When the value of bpb->totSec32 on the FAT12/16 volume is less than 0x10000,
+    // this field must be invalid value 0 and the true value is set to BPB_TotSec16.
+    // On the FAT32 volume, this field is always valid and old field is not used.
+    int dataSectors = -1;
+    if (bpb->totSec32 < 0x10000)
+    {
+        dataSectors = bpb->totSec16 - dataStartSector;
+    }
+    else
+    {
+        dataSectors = bpb->totSec32 - dataStartSector;
+    }
+
+    int countOfClusters = dataSectors / bpb->secPerClus;
+
+    // FAT sub-type (FAT12, FAT16, FAT32) from http://elm-chan.org/docs/fat_e.html
+    if (countOfClusters <= 4085)
+    {
+        printf("FAT12\n");
+        printf("\n");
+
+        ls(buffer, bpb);
+    }
+    else if (countOfClusters <= 65525)
+    {
+        printf("FAT16\n");
+        printf("Not implemented yet!\n");
+    }
+    else
+    {
+        printf("FAT32\n");
+        printf("Not implemented yet!\n");
+    }
+
+    // clean up
+    if (buffer != NULL)
+    {
+        free(buffer);
+        buffer = NULL;
+    }
+
+    printf("Terminating the application\n");
+
+    return 0;
+}
+
+/*
+int main()
+{
+    printf("Starting the application\n");
+
+    char in[8] = "testtes\0";
+    char out[8];
+    int maxLength = 8;
 
     //numericalTruncate(out, "t\0", sizeof(out), maxLength);
     //numericalTruncate(out, "testtes\0", sizeof(out), maxLength);
@@ -1338,18 +1428,17 @@ int main()
 
     bios_parameter_block *bpb = (bios_parameter_block *)buffer;
 
-    /*
-    // convert endianess
-    bpb->bytesPerSec = __bswap_16(bpb->bytesPerSec);
-    bpb->rsvdSecCnt = __bswap_16(bpb->rsvdSecCnt);
-    bpb->rootEntCnt = __bswap_16(bpb->rootEntCnt);
-    bpb->totSec16 = __bswap_16(bpb->totSec16);
-    bpb->fatSz16 = __bswap_16(bpb->fatSz16);
-    bpb->secPerTrk = __bswap_16(bpb->secPerTrk);
-    bpb->numHeads = __bswap_16(bpb->numHeads);
-    bpb->hiddSec = __bswap_32(bpb->hiddSec);
-    bpb->totSec32 = __bswap_32(bpb->totSec32);
-     */
+   
+    //// convert endianess
+    //bpb->bytesPerSec = __bswap_16(bpb->bytesPerSec);
+    //bpb->rsvdSecCnt = __bswap_16(bpb->rsvdSecCnt);
+    //bpb->rootEntCnt = __bswap_16(bpb->rootEntCnt);
+    //bpb->totSec16 = __bswap_16(bpb->totSec16);
+    //bpb->fatSz16 = __bswap_16(bpb->fatSz16);
+    //bpb->secPerTrk = __bswap_16(bpb->secPerTrk);
+    //bpb->numHeads = __bswap_16(bpb->numHeads);
+    //bpb->hiddSec = __bswap_32(bpb->hiddSec);
+    //bpb->totSec32 = __bswap_32(bpb->totSec32);
 
     // compute the sector where the first FAT starts
     int fatStartSector = bpb->rsvdSecCnt;
@@ -1642,7 +1731,7 @@ int main()
 
         //int rootDirectoryOffset;
 
-        /*
+        
         // compute the sector where the root directory starts
         // reserved Sector count tells us how many sectors are reserved for boot information
         // secPerFat contains the sectors used for each FAT table
@@ -1707,7 +1796,7 @@ int main()
 
         // go to the second entry (which is a file)
         dirEntryIter++;
-        */
+        
 
         // // physical sector number = 33 + FAT entry number - 2
         // // a physical sector is just a sector on the volume
@@ -1840,7 +1929,7 @@ int main()
             // }
         }
 
-*/
+
         printf("done");
 
         //int nextValue1 = readFAT12Entry(buffer, fatOffset, 2174);
@@ -1873,7 +1962,7 @@ int main()
 
         // physical sector number = 33 + FAT entry number - 2
 
-        /*       int fatOffset = bpb->rsvdSecCnt;
+               int fatOffset = bpb->rsvdSecCnt;
 
         // convert the offset in sectors to an offset in bytes
         fatOffset *= bpb->bytesPerSec;
@@ -1918,7 +2007,7 @@ int main()
         dirEntryPtr += (physicalSector2 * bpb->bytesPerSec);
 
         printf("%.512s\n", dirEntryPtr);
-         */
+         
     }
     else if (countOfClusters <= 65525)
     {
@@ -1940,3 +2029,4 @@ int main()
 
     return 0;
 }
+*/
